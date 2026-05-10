@@ -16,24 +16,26 @@ app.use(cookieParser());
 
 app.use(
   cors({
-    origin: ["http://localhost:5173", "http://localhost:5174"], // frontend urls
+    //origin: ["http://localhost:5173", "http://localhost:5174"], // frontend urls
+    origin: true,
     credentials: true,
   }),
 );
 
 // serve frontend build
-app.use((req, res) => {
-  res.sendFile(path.join(__dirname, "../dist/index.html"));
-});
+app.use(express.static(path.join(__dirname, "../dist")));
 
 app.use("/api/auth", authRoutes);
 app.use("/api/songs", songRoutes);
 
 // react routes
-app.get("/*", (req, res) => {
+// app.use("*name", (req, res) => {
+//   res.sendFile(path.join(__dirname, "../dist/index.html"));
+// });
+
+app.use((req, res) => {
   res.sendFile(path.join(__dirname, "../dist/index.html"));
 });
-
 // error handling middleware at last
 app.use(handleError);
 module.exports = app;
