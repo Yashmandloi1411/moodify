@@ -21,7 +21,7 @@ Thumbs.db
 desktop.ini
 
 # Build and dist
-dist/
+
 build/
 
 # Logs
