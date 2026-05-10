@@ -35,10 +35,10 @@ export const detectExpression = (landmarks) => {
   const lipDistance = Math.abs(upperLip.y - lowerLip.y);
   const eyeOpen = Math.abs(leftEyeTop.y - leftEyeBottom.y);
 
-  if (lipDistance > 0.03) return "😊 Smiling";
-  if (eyeOpen > 0.03) return "😲 Surprised";
+  if (lipDistance > 0.03) return "Happy";
+  if (eyeOpen > 0.03) return "Surprised";
 
-  return "😐 Neutral";
+  return "sad";
 };
 
 export const drawPoints = (ctx, landmarks, width, height) => {

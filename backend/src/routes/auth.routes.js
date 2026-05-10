@@ -5,9 +5,16 @@ const router = express.Router();
 const authController = require("../controllers/auth.controller");
 const authMiddleware = require("../middlewares/auth.middleware");
 
-router.post("/register", authController.registerUser);
+// validation
+const authValidation = require("../validation/auth.validation");
 
-router.post("/login", authController.loginUser);
+router.post(
+  "/register",
+  authValidation.registerValidator,
+  authController.registerUser,
+);
+
+router.post("/login", authValidation.loginValidator, authController.loginUser);
 
 router.get("/get-me", authMiddleware.authUser, authController.getUser);
 

@@ -6,68 +6,161 @@ import {
   detectExpression,
   drawPoints,
 } from "../utils/utils";
+import "./FaceExpression.scss";
 
-function FaceExpression() {
+function normalizeMood(value) {
+  if (!value) return "happy";
+  const mood = value.toLowerCase();
+  if (
+    mood.includes("happy") ||
+    mood.includes("smile") ||
+    mood.includes("joy")
+  ) {
+    return "happy";
+  }
+  if (mood.includes("sad")) {
+    return "sad";
+  }
+  if (
+    mood.includes("angry") ||
+    mood.includes("mad") ||
+    mood.includes("annoyed")
+  ) {
+    return "angry";
+  }
+  if (mood.includes("surpris")) {
+    return "surprised";
+  }
+  return "neutral";
+}
+
+function FaceExpression({ onMoodDetected }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
+  const modelRef = useRef(null);
   const animationRef = useRef(null);
 
-  const [expression, setExpression] = useState("Loading model...");
+  const [status, setStatus] = useState("Loading model...");
+  const [expression, setExpression] = useState("Press Detect Mood to start");
+  const [detectedMood, setDetectedMood] = useState("");
 
   useEffect(() => {
-    let faceLandmarker;
-
     const init = async () => {
-      faceLandmarker = await loadModel();
+      try {
+        const model = await loadModel();
+        modelRef.current = model;
+        await startWebcam(videoRef);
+        setStatus(
+          "Camera ready. Click Detect Mood when your face is centered.",
+        );
 
-      await startWebcam(videoRef);
+        const drawFrame = () => {
+          const video = videoRef.current;
+          const canvas = canvasRef.current;
+          if (video && canvas && video.readyState >= 2) {
+            const ctx = canvas.getContext("2d");
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-      detect(faceLandmarker);
-    };
-
-    const detect = (model) => {
-      const video = videoRef.current;
-      const canvas = canvasRef.current;
-      const ctx = canvas.getContext("2d");
-
-      const processFrame = () => {
-        if (video.readyState >= 2) {
-          const results = model.detectForVideo(video, Date.now());
-
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-          if (results.faceLandmarks.length > 0) {
-            const landmarks = results.faceLandmarks[0];
-
-            drawPoints(ctx, landmarks, canvas.width, canvas.height);
-
-            const mood = detectExpression(landmarks);
-            setExpression(mood);
+            const results = model.detectForVideo(video, Date.now());
+            if (results && results.faceLandmarks.length > 0) {
+              const landmarks = results.faceLandmarks[0];
+              drawPoints(ctx, landmarks, canvas.width, canvas.height);
+            }
           }
-        }
+          animationRef.current = requestAnimationFrame(drawFrame);
+        };
 
-        animationRef.current = requestAnimationFrame(processFrame);
-      };
-
-      processFrame();
+        animationRef.current = requestAnimationFrame(drawFrame);
+      } catch (error) {
+        console.error(error);
+        setStatus("Unable to access camera. Please allow webcam access.");
+      }
     };
 
     init();
 
-    return () => cancelAnimationFrame(animationRef.current);
+    return () => {
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
+      const stream = videoRef.current?.srcObject;
+      if (stream) {
+        stream.getTracks().forEach((track) => track.stop());
+      }
+    };
   }, []);
 
+  const handleDetectMood = () => {
+    const model = modelRef.current;
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+
+    if (!model || !video || !canvas) {
+      setStatus("Model is still loading. Please wait a moment.");
+      return;
+    }
+
+    if (video.readyState < 2) {
+      setStatus("Camera not ready yet. Please try again.");
+      return;
+    }
+
+    const results = model.detectForVideo(video, Date.now());
+
+    if (!results || results.faceLandmarks.length === 0) {
+      setStatus(
+        "No face detected. Please center your face and click Detect again.",
+      );
+      return;
+    }
+
+    const landmarks = results.faceLandmarks[0];
+
+    const mood = detectExpression(landmarks);
+    const normalized = normalizeMood(mood);
+
+    setExpression(mood);
+    setDetectedMood(normalized);
+    setStatus("Mood detected successfully.");
+    onMoodDetected?.(normalized);
+  };
+
   return (
-    <div style={{ textAlign: "center" }}>
-      <h2>Face Expression Detection</h2>
+    <section className="face-expression">
+      <video
+        ref={videoRef}
+        className="face-expression__video"
+        autoPlay
+        muted
+        playsInline
+      />
 
-      <video ref={videoRef} style={{ display: "none" }} />
+      <div className="face-expression__header">
+        <div>
+          <h2>Face Expression</h2>
+          <p className="face-expression__status">{status}</p>
+        </div>
+        <span className="face-expression__badge">Click to detect</span>
+      </div>
 
-      <canvas ref={canvasRef} width="640" height="480" />
+      <div className="face-expression__canvas-wrapper">
+        <canvas ref={canvasRef} width="640" height="480" />
+      </div>
 
-      <h3>{expression}</h3>
-    </div>
+      <div className="face-expression__footer">
+        <div className="face-expression__result">
+          <h3>{expression}</h3>
+          {detectedMood && <p>Detected mood: {detectedMood}</p>}
+        </div>
+
+        <button
+          type="button"
+          className="face-expression__button"
+          onClick={handleDetectMood}
+        >
+          Detect Mood
+        </button>
+      </div>
+    </section>
   );
 }
 

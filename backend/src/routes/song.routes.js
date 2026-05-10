@@ -6,6 +6,15 @@ const upload = require("../middlewares/upload.middleware");
 const router = express.Router();
 const songController = require("../controllers/song.controller");
 
-router.post("/", upload.single("song"), songController.uploadSong);
-router.get("/", songController.getSongs);
+// validation
+
+const songValidation = require("../validation/song.validation");
+
+router.post(
+  "/",
+  upload.single("song"),
+  songValidation.uploadSongValidator,
+  songController.uploadSong,
+);
+router.get("/", songValidation.getSongsValidator, songController.getSongs);
 module.exports = router;

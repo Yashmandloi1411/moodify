@@ -1,102 +1,119 @@
 const userModel = require("../models/user.model");
 
 const blackListModel = require("../models/blacklist.model");
+
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+
 require("dotenv").config();
 
 const redis = require("../config/cache");
 
-async function registerUser(req, res) {
-  const { username, email, password } = req.body;
-
-  const isAlreadyRegister = await userModel.findOne({
-    $or: [{ username }, { email }],
-  });
-  // email already exist
-  if (isAlreadyRegister) {
-    return res.status(409).json({
-      message: "user already exist",
+async function registerUser(req, res, next) {
+  try {
+    const { username, email, password } = req.body;
+    const isAlreadyRegister = await userModel.findOne({
+      $or: [{ username }, { email }],
     });
+    // email already exist
+    if (isAlreadyRegister) {
+      const err = new Error("user already exist");
+      err.status = 409;
+      return next(err);
+    }
+
+    const hashPassword = await bcrypt.hash(password, 10);
+
+    const user = await userModel.create({
+      email: email,
+      username: username,
+      password: hashPassword,
+    });
+    const token = jwt.sign(
+      {
+        id: user._id,
+        username: user.username,
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" },
+    );
+
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: true,
+    });
+
+    return res.status(201).json({
+      message: "user created successfully",
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+      },
+    });
+  } catch (err) {
+    next(err);
   }
-
-  const hashPassword = await bcrypt.hash(password, 10);
-
-  const user = await userModel.create({
-    email: email,
-    username: username,
-    password: hashPassword,
-  });
-  const token = jwt.sign(
-    {
-      id: user._id,
-      username: user.username,
-    },
-    process.env.JWT_SECRET,
-    { expiresIn: "1d" },
-  );
-
-  res.cookie("token", token, {
-    httpOnly: true,
-    secure: true,
-    sameSite: true,
-  });
-
-  return res.status(201).json({
-    message: "user created successfully",
-    user: {
-      id: user._id,
-      username: user.username,
-      email: user.email,
-    },
-  });
 }
 
-async function loginUser(req, res) {
-  const { username, email, password } = req.body;
+async function loginUser(req, res, next) {
+  try {
+    const { username, email, password } = req.body;
 
-  const user = await userModel
-    .findOne({
-      $or: [{ email }, { username }],
-    })
-    .select("+password");
+    const user = await userModel
+      .findOne({
+        $or: [{ email }, { username }],
+      })
+      .select("+password");
 
-  if (!user) {
-    return res.status(400).json({
-      message: "Inavalid credentials",
+    if (!user) {
+      // return res.status(400).json({
+      //   message: "Inavalid credentials",
+      // });
+
+      const err = new Error("user not found");
+      err.status = 400;
+      return next(err);
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      // return res.status(400).json({
+      //   message: "Inavalid credentials",
+      // });
+
+      const err = new Error("Inavalid credentials");
+      err.status = 400;
+      return next(err);
+    }
+
+    const token = jwt.sign(
+      {
+        id: user._id,
+        username: user.username,
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" },
+    );
+
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: true,
     });
-  }
 
-  const isPasswordValid = await bcrypt.compare(password, user.password);
-  if (!isPasswordValid) {
-    return res.status(400).json({
-      message: "Inavalid credentials",
+    return res.status(200).json({
+      message: "user login successfully",
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+      },
     });
+  } catch (err) {
+    next(err);
   }
-
-  const token = jwt.sign(
-    {
-      id: user._id,
-      username: user.username,
-    },
-    process.env.JWT_SECRET,
-    { expiresIn: "1d" },
-  );
-
-  res.cookie("token", token, {
-    httpOnly: true,
-    secure: true,
-    sameSite: true,
-  });
-
-  return res.status(200).json({
-    message: "user login successfully",
-    user: {
-      id: user._id,
-      username: user.username,
-      email: user.email,
-    },
-  });
 }
 
 async function getUser(req, res) {

@@ -1,11 +1,33 @@
 .button {
   width: 100%;
-  padding: 0.3rem;
-  background-color: #dd4200;
-  color: #fff;
-  border: none;
-  border-radius: 2px;
+  padding: 0.95rem 1.5rem;
+  background: rgba(255, 255, 255, 0.95);
+  color: #0f0f0f;
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  border-radius: 1rem;
   cursor: pointer;
   outline: none;
-  font-size: 1rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  transition: all 0.3s ease;
+  box-shadow: 0 8px 32px rgba(255, 255, 255, 0.25);
+  font-family: inherit;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px rgba(255, 255, 255, 0.35);
+    background: rgba(255, 255, 255, 1);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
 }
