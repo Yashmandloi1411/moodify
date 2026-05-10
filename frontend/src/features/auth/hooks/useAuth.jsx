@@ -10,39 +10,59 @@ export const useAuth = () => {
 
   async function handleRegister({ email, username, password }) {
     setLoading(true);
-
-    const data = await register({ email, username, password });
-    setUser(data.user);
-    return data;
-
-    setLoading(false);
+    try {
+      const data = await register({ email, username, password });
+      setUser(data.user);
+      return data;
+    } catch (error) {
+      console.error(error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleLogin({ email, username, password }) {
     setLoading(true);
-
-    const data = await login({ email, username, password });
-    setUser(data.user);
-
-    setLoading(false);
+    try {
+      const data = await login({ email, username, password });
+      setUser(data.user);
+    } catch (error) {
+      console.error(error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleGetMe() {
     setLoading(true);
-    const data = await getMe();
-    setUser(data.user);
-    setLoading(false);
+    try {
+      const data = await getMe();
+      setUser(data.user);
+    } catch (error) {
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleLogout() {
     setLoading(true);
-    await logout();
-    setUser(null);
-    setLoading(false);
+    try {
+      await logout();
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setUser(null);
+      setLoading(false);
+    }
   }
+
   useEffect(() => {
     handleGetMe();
   }, []);
+
   return {
     user,
     loading,
