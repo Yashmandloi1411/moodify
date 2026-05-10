@@ -22,13 +22,15 @@ app.use(
 );
 
 // serve frontend build
-app.use(express.static(path.join(__dirname, "../dist")));
+app.use((req, res) => {
+  res.sendFile(path.join(__dirname, "../dist/index.html"));
+});
 
 app.use("/api/auth", authRoutes);
 app.use("/api/songs", songRoutes);
 
 // react routes
-app.get("*", (req, res) => {
+app.get("/*", (req, res) => {
   res.sendFile(path.join(__dirname, "../dist/index.html"));
 });
 
