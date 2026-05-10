@@ -1,6 +1,9 @@
 const express = require("express");
 const cookieParser = require("cookie-parser");
 
+// path
+const path = require("path");
+
 const authRoutes = require("../src/routes/auth.routes");
 const songRoutes = require("../src/routes/song.routes");
 const { handleError } = require("./middlewares/error.middleware");
@@ -18,8 +21,16 @@ app.use(
   }),
 );
 
+// serve frontend build
+app.use(express.static(path.join(__dirname, "../dist")));
+
 app.use("/api/auth", authRoutes);
 app.use("/api/songs", songRoutes);
+
+// react routes
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "../dist/index.html"));
+});
 
 // error handling middleware at last
 app.use(handleError);
